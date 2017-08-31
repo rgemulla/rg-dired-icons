@@ -1,7 +1,7 @@
 * rg-dired-icons
 Dired minor mode that displays file and directory icons for Windows. Also provides utility functions for extracting, displaying, and caching icons.
 
-[file:screenshot.png]
+[[file:screenshot.png]]
 
 Icons are determined using the filename extension. Given an extension, rg-dired-icons searches the Windows registry for the program associated with the extension, extracts the icon, and displays it. Once extracted, icons are cached so that the mode is quite efficient.
 
@@ -10,7 +10,7 @@ Icons are determined using the filename extension. Given an extension, rg-dired-
 - [[https://www.imagemagick.org/][ImageMagick 6]] (to convert icons)
 
 ** Installation
-1. Install the package (will be on MELPA soon)
+1. Install the package
 2. Add the ResourceHacker installation directory to the system path or set  ~rg/icons-resource-hacker-directory~ to that directory (with a trailing /)
 3. Add the ImageMagick installation directory to the system path (important:
    before =Windows/System32=) or set ~rg/icons-imagemagick-directory~ to that
