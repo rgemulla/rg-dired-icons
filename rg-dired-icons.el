@@ -4,7 +4,7 @@
 ;;
 ;; Author: Rainer Gemulla <rgemulla@gmx.de>
 ;; Keywords: dired, icons
-;; Package-Requires: ((f "20170404.1039"))
+;; Package-Requires: ((f "20170404.1039") (emacs "24.4"))
 ;; URL: https://github.com/rgemulla/rg-dired-icons
 ;;
 ;; This program is free software; you can redistribute it and/or modify
@@ -33,13 +33,13 @@
 (require 'dired)
 (require 'rg-icons)
 
-(defvar-local rg/dired-icons-displayed nil
+(defvar-local rg-dired-icons-displayed nil
   "Flags whether icons have been added.")
 
-(defun rg/dired-icons--display ()
+(defun rg-dired-icons--display ()
   "Display the icons of files in a dired buffer."
-  (when (and (not rg/dired-icons-displayed) dired-subdir-alist)
-    (setq-local rg/dired-icons-displayed t)
+  (when (and (not rg-dired-icons-displayed) dired-subdir-alist)
+    (setq-local rg-dired-icons-displayed t)
     (let ((inhibit-read-only t))
       (save-excursion
 	(goto-char (point-min))
@@ -48,32 +48,32 @@
 	    (let ((file (dired-get-filename 'verbatim t)))
 	      (unless (member file '("." ".."))
 		(let ((filename (dired-get-filename nil t)))
-                  (insert-image (rg/icons-create-image-for-file filename))
+                  (insert-image (rg-icons-create-image-for-file filename))
                   (insert " ")))))
 	  (forward-line 1))))))
 
-(defun rg/dired-icons--reset (&optional _arg _noconfirm)
+(defun rg-dired-icons--reset (&optional _arg _noconfirm)
   "Functions used as advice when redisplaying buffer."
-  (setq-local rg/dired-icons-displayed nil))
+  (setq-local rg-dired-icons-displayed nil))
 
-(defun rg/dired-icons--hook ()
+(defun rg-dired-icons--hook ()
   "Hook to displays icons for a newly inserted subdirectory."
-  (setq-local rg/dired-icons-displayed nil)
-  (rg/dired-icons--display))
+  (setq-local rg-dired-icons-displayed nil)
+  (rg-dired-icons--display))
 
 ;;;###autoload
-(define-minor-mode rg/dired-icons-mode
+(define-minor-mode rg-dired-icons-mode
   "Display all-the-icons icon for each files in a dired buffer."
-  :lighter " rg/dired-icons-mode"
-  (if (and (display-graphic-p) rg/dired-icons-mode)
+  :lighter " rg-dired-icons-mode"
+  (if (and (display-graphic-p) rg-dired-icons-mode)
       (progn
-        (add-hook 'dired-after-readin-hook 'rg/dired-icons--hook t t)
+        (add-hook 'dired-after-readin-hook 'rg-dired-icons--hook t t)
         (when (derived-mode-p 'dired-mode)
-          (rg/dired-icons--display)))
-    (remove-hook 'dired-after-readin-hook 'rg/dired-icons--hook t)
+          (rg-dired-icons--display)))
+    (remove-hook 'dired-after-readin-hook 'rg-dired-icons--hook t)
     (dired-revert)))
 
-(advice-add 'dired-revert :before #'rg/dired-icons--reset)
+(advice-add 'dired-revert :before #'rg-dired-icons--reset)
 
 (provide 'rg-dired-icons)
 
