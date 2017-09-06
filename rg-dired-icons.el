@@ -2,6 +2,11 @@
 ;;
 ;; Copyright (C) 2017 Rainer Gemulla
 ;;
+;; Author: Rainer Gemulla <rgemulla@gmx.de>
+;; Keywords: dired, icons
+;; Package-Requires: ((f "20170404.1039"))
+;; URL: https://github.com/rgemulla/rg-dired-icons
+;;
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation, either version 3 of the License, or
@@ -15,8 +20,15 @@
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ;;
-;; Based on all-the-icons-dired.el from jtbm37
+;;
+;;; Commentary:
+;;
+;; See README.
+;;
+;; Based on all-the-icons-dired.el:
 ;; https://github.com/jtbm37/all-the-icons-dired
+
+;;; Code:
 
 (require 'dired)
 (require 'rg-icons)
@@ -45,6 +57,7 @@
   (setq-local rg/dired-icons-displayed nil))
 
 (defun rg/dired-icons--hook ()
+  "Hook to displays icons for a newly inserted subdirectory."
   (setq-local rg/dired-icons-displayed nil)
   (rg/dired-icons--display))
 
@@ -63,4 +76,5 @@
 (advice-add 'dired-revert :before #'rg/dired-icons--reset)
 
 (provide 'rg-dired-icons)
-;;; rg/dired-icons.el ends here
+
+;;; rg-dired-icons.el ends here

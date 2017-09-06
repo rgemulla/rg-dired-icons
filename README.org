@@ -1,9 +1,13 @@
 * rg-dired-icons
-Dired minor mode that displays file and directory icons for Windows. Also provides utility functions for extracting, displaying, and caching icons.
+Dired minor mode that displays file and directory icons for Windows. Also
+provides utility functions for extracting, displaying, and caching icons.
 
 [[file:screenshot.png]]
 
-Icons are determined using the filename extension. Given an extension, rg-dired-icons searches the Windows registry for the program associated with the extension, extracts the icon, and displays it. Once extracted, icons are cached so that the mode is quite efficient.
+Icons are determined using the filename extension. Given an extension,
+rg-dired-icons searches the Windows registry for the program associated with the
+extension, extracts the icon, and displays it. Once extracted, icons are cached
+so that the mode is quite efficient.
 
 ** Prerequisites
 - [[http://www.angusj.com/resourcehacker/][ResourceHacker]] (to extract icons)
@@ -11,7 +15,8 @@ Icons are determined using the filename extension. Given an extension, rg-dired-
 
 ** Installation
 1. Install the package
-2. Add the ResourceHacker installation directory to the system path or set  ~rg/icons-resource-hacker-directory~ to that directory (with a trailing /)
+2. Add the ResourceHacker installation directory to the system path or set
+   ~rg/icons-resource-hacker-directory~ to that directory (with a trailing /)
 3. Add the ImageMagick installation directory to the system path (important:
    before =Windows/System32=) or set ~rg/icons-imagemagick-directory~ to that
    directory (with a trailing /)
@@ -30,7 +35,7 @@ Here is an example configuration:
       (setq cygwin-path (concat (car cygwin-path1) "/"))
       (setq rg/icons-imagemagick-directory cygwin-path)))
 
-  ;; Example: ResourceHacker installed in ~/.emacs.d/ResourchHacker
+  ;; Example: ResourceHacker installed in ~/.emacs.d/ResourceHacker
   (setq rg/icons-resource-hacker-directory
         (expand-file-name (concat user-emacs-directory "ResourceHacker/")))
 
@@ -39,9 +44,17 @@ Here is an example configuration:
   (add-hook 'dired-mode-hook 'rg/dired-icons-mode))
 #+END_SRC
 ** Refreshing icons
-- Icon resolutions are selected to exactly match the font size. When the font size or text scale is changed in Emacs, icons sizes may be incorrect. Simply refresh the dired buffer to fix this.
+- Icon resolutions are selected to exactly match the font size. When the font
+  size or text scale is changed in Emacs, icons sizes may be incorrect. Simply
+  refresh the dired buffer to fix this.
 - When no suitable icon for a file can be determined, a default icon is shown.
-- rg-dired-icons caches all icons on disk and in memory. When file associations change, the cache may be out of sync and show outdated icons. When you installed an application that handles a file type that was previously unhandled, run ~M-x rg/icons-clear-memory-cache~ and refresh. When you changed the application that handles a file type, run ~M-x rg/icons-clear-cache~.
-** Known issues
-- ImageMagick v7 is (yet) unsupported
-- Currently only tested with Cygwin's version of ImageMagick
+- rg-dired-icons caches all icons on disk and in memory. When file associations
+  change, the cache may be out of sync and show outdated icons. When you
+  installed an application that handles a file type that was previously
+  unhandled, run ~M-x rg/icons-clear-memory-cache~ and refresh. When you changed
+  the application that handles a file type, run ~M-x rg/icons-clear-cache~.
+** Notes and known issues
+- Since the Windows builds of Emacs do not have ImageMagick support built in,
+  this package directly calls the ImageMagick programs.
+- ImageMagick v7 is (yet) unsupported.
+- Currently only tested with Cygwin's version of ImageMagick.

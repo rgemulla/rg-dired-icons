@@ -14,39 +14,46 @@
 ;;
 ;; You should have received a copy of the GNU General Public License
 ;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+;;
+;;
+;;; Commentary:
+;; 
+
+;;; Code:
 
 (require 'f)
 
 (defcustom rg/icons-default-icon-size nil
-  "Default icon size in pixels. If left nil, icon size is
-  determined by the current line pixel height."
+  "Default icon size in pixels.
+If left nil, icon size is determined by the current line pixel height."
   :type 'integer
   :group 'rg-icons)
 
 (defcustom rg/icons-imagemagick-directory ""
-  "Directory where ImageMagick is installed. Needs to be an
-  absolute path and end with /. Leave empty to use system search
+  "Directory where ImageMagick is installed.
+Needs to be an absolute path and end with /.  Leave empty to use system search
   path instead."
   :type 'string
   :group 'rg-icons)
 
 (defcustom rg/icons-resource-hacker-directory ""
-  "Directory where ResourceHacker is installed. Needs to be an
-  absolute path and end with /. Leave empty to use system search
+  "Directory where ResourceHacker is installed.
+Needs to be an absolute path and end with /.  Leave empty to use system search
   path instead."
   :type 'string
   :group 'rg-icons)
 
 (defcustom rg/icons-debug 'error
-  "If error, log only errors. Otherwise, if non-nil,
-  additionally log debug messages to the *Messages* buffer. If
+  "If error, log only errors.
+Otherwise, if non-nil,
+additionally log debug messages to the *Messages* buffer.  If
   nil, no messages."
   :group 'rg-icons)
 
 (defcustom rg/icons-file-cache-directory
   (expand-file-name (concat user-emacs-directory "rg-icons/cache/"))
-  "Directory where extracted files are stored and cached. Must
-  end with /. Note that this directory is deleted completely
+  "Directory where extracted files are stored and cached.
+Must end with /.  Note that this directory is deleted completely
   using `rg/icons-clear-file-cache', so don't store anything in
   there."
   :type 'string
@@ -57,16 +64,18 @@
 
 (defcustom rg/icons-persistent-cache-file
   (expand-file-name (concat user-emacs-directory "rg-icons-cache.el"))
-  "If non-nil, in memory-cache is persisted between Emacs
-  sessions in the file specified here. If nil, the in-memory
-  cache is not persisted. If you change this value, do so before
-  loading this package."
+  "Whether and where to persist the in-memory cache.
+If non-nil, in memory-cache is persisted between Emacs sessions
+in the file specified here.  If nil, the in-memory cache is not
+persisted.  If you change this value, do so before loading this
+package."
   :type 'string
   :group 'rg-icons)
 
 (defvar rg/icons-cache nil
-  "In-memory cache of icons. Key is the caching key (typically of
-  form \"<extension>-<size>\"). Value is either an image or the
+  "In-memory cache of icons.
+Key is the caching key (typically of
+form \"<extension>-<size>\"). Value is either an image or the
   symbol 'default.")
 
 ;; -----------------------------------------------------------------------------
@@ -74,8 +83,8 @@
 ;; -----------------------------------------------------------------------------
 
 (defmacro rg/icons--log (msg &optional type)
-  "Logs the specified msg with the specified type (either nil or
-'error). Returns t when message was logged, else nil. Respects ;
+  "Logs the specified MSG with the specified TYPE (either nil or 'error).
+Returns t when message was logged, else nil.  Respects ;
 `rg/icons-debug'."
   ;; determine whether to log
   (list 'when
@@ -99,8 +108,9 @@
 ;; -----------------------------------------------------------------------------
 
 (defun rg/icons-get-icon-size (&optional icon-size)
-  "If ICON-SIZE is nil, returns the default icon size based on
-the setting of `rg/icons-default-icon-size'. Otherwise, returns
+  "Determine the icon size to use.
+If ICON-SIZE is nil, returns the default icon size based on the
+setting of `rg/icons-default-icon-size'.  Otherwise, returns
 ICON-SIZE."
   (cond
    (icon-size icon-size)
@@ -108,7 +118,8 @@ ICON-SIZE."
    (t (line-pixel-height))))
 
 (defun rg/icons--size-format-string (&optional icon-size)
-  "Format string to use with ImageMagick convert."
+  "Format string to use with ImageMagick convert.
+Uses the specified ICON-SIZE."
   (let ((icon-size (if icon-size icon-size rg/icons-default-icon-size)))
     (concat (int-to-string icon-size) "x" (int-to-string icon-size))))
 
@@ -118,23 +129,26 @@ ICON-SIZE."
 ;; -----------------------------------------------------------------------------
 
 (defun rg/icons--windows-reg-query (key-arg value-arg)
-  "Queries the Windows registry using \"reg query\" with
-  arguments KEY-ARG and VALUE-ARG. Returns nil on error."
+  "Query the Windows registry.
+KEY-ARG and VALUE-ARG are used as arguments to \"reg query\".
+Returns nil on error."
   (let ((result (shell-command-to-string (format "reg query %s %s" key-arg value-arg))))
     (when (and result (not (string-match-p "\\`ERROR" result)))
         result)))
 
 (defun rg/icons--windows-reg-entry-first-key (entry)
-  "Extracts the first value of type REG_SZ or REG_EXPAND_SZ from
-a result of `rg/icons--windows-reg-query'."
+  "Extract the first value of type REG_SZ or REG_EXPAND_SZ from ENTRY.
+ENTRY should be a result of
+`rg/icons--windows-reg-query'.  Returns nil on error."
   (save-match-data
     (when (and entry (string-match "^ * \\([^ ]+\\) *REG_" entry))
       (match-string 1 entry))))
 
 (defun rg/icons--windows-reg-entry-first-value (entry)
-  "Extracts the first value of type REG_SZ or REG_EXPAND_SZ from
-a result of `rg/icons--windows-reg-query'."
-  (let ((result 
+  "Extract the first value of type REG_SZ or REG_EXPAND_SZ from ENTRY.
+ENTRY should be a result of
+`rg/icons--windows-reg-query'.  Returns nil on error."
+  (let ((result
          (save-match-data
            (when (and entry (string-match "^.* +REG_\\(EXPAND_\\)?SZ +\\([^ ].*\\)$" entry))
              (match-string 2 entry)))))
@@ -142,18 +156,23 @@ a result of `rg/icons--windows-reg-query'."
       result)))
 
 (defun rg/icons--windows-reg-entry-query-first-value (key-arg value-arg)
+  "Query the Windows registry and extract the first value.
+KEY-ARG and VALUE-ARG are used as arguments to \"reg query\".
+Returns nil on error."
   (let ((entry (rg/icons--windows-reg-query key-arg value-arg)))
     (when entry
       (rg/icons--windows-reg-entry-first-value entry))))
 
 (defun rg/icons--windows-reg-entry-query-first-key (key-arg value-arg)
+  "Query the Windows registry and extract the first key.
+KEY-ARG and VALUE-ARG are used as arguments to \"reg query\".
+Returns nil on error."
   (let ((entry (rg/icons--windows-reg-query key-arg value-arg)))
     (when entry
       (rg/icons--windows-reg-entry-first-key entry))))
 
 (defun rg/icons--windows-reg-get-progid-for-extension (ext)
-  "Returns the progid registered for the given extension or nil
-when none."
+  "Return the progid registered for extension EXT or nil when none."
   (let* ((progid (or (rg/icons--windows-reg-entry-query-first-value
                       (format "HKCR\\%s\\Userchoice" ext) "/v ProgId")
                      (rg/icons--windows-reg-entry-query-first-value
@@ -171,8 +190,7 @@ when none."
     ))
 
 (defun rg/icons--windows-reg-get-icon-resource-for-progid (progid)
-  "Returns the icon resource (of format \"filename,icon-number\")
-registered with the given progid or nil when not present."
+  "Return the icon resource (of format \"filename,icon-number\") registered with PROGID or nil when not present."
   (let* ((entry (rg/icons--windows-reg-query (format "HKCR\\%s\\DefaultIcon" progid) "/ve"))
          (command (unless entry (rg/icons--windows-reg-entry-first-value
                                  (rg/icons--windows-reg-query
@@ -193,20 +211,20 @@ registered with the given progid or nil when not present."
 ;; -----------------------------------------------------------------------------
 
 (defun rg/icons--quote (string)
-  "Surrounds string with quotes, if not already present."
+  "Surrounds STRING with quotes, if not already present."
   (if (string-match-p "^\".*\"$" string)
       string
     (concat "\"" string "\"")))
 
 (defun rg/icons--unquote (string)
-  "Strips quotes from string, if present."
+  "Strips quotes from STRING, if present."
   (if (string-match "^\"\\(.*\\)\"$" string)
       (match-string 1 string)
     string))
 
 (defun rg/icons--windows-extract-icon-file (icon-resource)
-  "Extracts the ico file for the given icon resource. Returns nil
-on error."
+  "Extracts the ico file from ICON-RESOURCE.
+Returns nil on error."
   (let* ((file-n (split-string icon-resource ","))
          (file (rg/icons--unquote (nth 0 file-n)))
          (file (if (and (not (file-exists-p file)) (not (string-match-p "[/|\\]" file)))
@@ -280,8 +298,9 @@ on error."
       extracted-ico-file)))
 
 (defun rg/icons--get-icon-frame (ico-file &optional icon-size)
-  "Returns the name of the frame that best matches the specified
-icon size in the given ico file. Returns nil on error."
+  "Return the name of a suitable frame from ICO-FILE.
+Finds the frame that best matches the specified
+ICON-SIZE.  Returns nil on error."
   (let* ((icon-size (rg/icons-get-icon-size icon-size))
          (best-frame) (best-size) (best-depth))
     (with-temp-buffer
@@ -324,10 +343,11 @@ icon size in the given ico file. Returns nil on error."
 ;; -----------------------------------------------------------------------------
 
 (defun rg/icons--create-image-from-ico-file (ico-file &optional icon-size cache-key)
-  "Returns an image of the frame that best matches the specified
-icon size in the given ico file. When cache-ext is non-nil,
+  "Create an image from ICO-FILE.
+Return the image of the frame that best matches the specified
+ICON-SIZE in the given ico-file.  When CACHE-KEY is non-nil,
 stores the png image under name CACHE-KEY.png in
-`rg/icons-file-cache-directory'. Returns nil on error."
+`rg/icons-file-cache-directory'.  Returns nil on error."
   (when (file-exists-p ico-file)
     (let ((icon-size  (rg/icons-get-icon-size icon-size))
           (frame (rg/icons--get-icon-frame ico-file icon-size))
@@ -350,9 +370,9 @@ stores the png image under name CACHE-KEY.png in
           nil)))))
 
 (defun rg/icons--windows-create-image-for-extension (ext &optional icon-size cache-key)
-  "Returns an image of the icon associated with the specified
-file extension and for the given icon size. EXT should start with
-a dot. When cache-key is non-nil, stores the png image under name
+  "Create an image for the icon associated with extension EXT.
+Return the image of size ICON-SIZE.  EXT should start with a
+dot.  When CACHE-KEY is non-nil, stores the png image under name
 CACHE-KEY.png in `rg/icons-file-cache-directory'."
   (let* ((icon-size     (rg/icons-get-icon-size icon-size))
          (progid        (rg/icons--windows-reg-get-progid-for-extension ext))
@@ -365,9 +385,9 @@ CACHE-KEY.png in `rg/icons-file-cache-directory'."
     image))
 
 (defun rg/icons--windows-create-image-for-directory (&optional icon-size cache-key)
-  "Returns an image of the directory icon. When cache-key is
-non-nil, stores the png image under name CACHE-KEY.png in
-`rg/icons-file-cache-directory'."
+  "Create an image of the directory icon with the specified ICON-SIZE.
+When CACHE-KEY is non-nil, stores the png image under name
+CACHE-KEY.png in `rg/icons-file-cache-directory'."
   (let* ((icon-resource "%windir%/system32/shell32.dll,4")
          (icon-file (rg/icons--windows-extract-icon-file icon-resource))
          (image (when icon-file
@@ -375,9 +395,9 @@ non-nil, stores the png image under name CACHE-KEY.png in
     image))
 
 (defun rg/icons--windows-create-image-for-default-file (&optional icon-size cache-key)
-  "Returns an image of the default file icon. When cache-key is
-non-nil, stores the png image under name CACHE-KEY.png in
-`rg/icons-file-cache-directory'."
+  "Create an image of the default file icon with the specified ICON-SIZE.
+When CACHE-KEY is non-nil, stores the png image under name
+CACHE-KEY.png in `rg/icons-file-cache-directory'."
   (let* ((icon-resource "%windir%/system32/shell32.dll,1")
          (icon-file (rg/icons--windows-extract-icon-file icon-resource))
          (image (when icon-file
@@ -385,9 +405,10 @@ non-nil, stores the png image under name CACHE-KEY.png in
     image))
 
 (defun rg/icons--windows-create-image-for-executable-file (&optional icon-size cache-key)
-  "Returns an image of the default file icon for
-executables. When cache-key is non-nil, stores the png image
-under name CACHE-KEY.png in `rg/icons-file-cache-directory'."
+  "Create an image of the default icon for executables.
+Uses the specified ICON-SIZE.  When CACHE-KEY is non-nil, stores
+the png image under name CACHE-KEY.png in
+`rg/icons-file-cache-directory'."
   (let* ((icon-resource "%SystemRoot%/System32/shell32.dll,3")
          (icon-file (rg/icons--windows-extract-icon-file icon-resource))
          (image (when icon-file
@@ -400,15 +421,16 @@ under name CACHE-KEY.png in `rg/icons-file-cache-directory'."
 ;; -----------------------------------------------------------------------------
 
 (defun rg/icons--cache-key (base-key icon-size)
+  "Compute a cache key from a BASE-KEY and an ICON-SIZE."
   (let ((icon-size (rg/icons-get-icon-size icon-size)))
     (concat base-key "-" (int-to-string icon-size))))
 
 (defun rg/icons--retrieve-image-from-cache (cache-key)
-  "Retrieves an image from the in-memory or the on-disk cache, in
-that order. Returns nil if not cached."
+  "Retrieves an image from the in-memory or the on-disk cache, in that order.
+Returns nil if there is no entry with CACHE-KEY."
   (when cache-key
     (let ((entry (gethash cache-key rg/icons-cache)))
-      (cond 
+      (cond
        ((eq entry 'default) (rg/icons-create-image-for-default-file))
        (entry entry)
        (t (let ((cached-png-file
@@ -421,6 +443,8 @@ that order. Returns nil if not cached."
                              :ascent 'center :mask 'heuristic)))))))))
 
 (defun rg/icons--store-image-in-cache (cache-key image)
+  "Create in the cache entry CACHE-KEY with value IMAGE.
+No action is performed when IMAGE is nil."
   (when image
     (rg/icons--log (format "Caching image for key: %s" cache-key))
     (puthash cache-key image rg/icons-cache))
@@ -445,6 +469,7 @@ that order. Returns nil if not cached."
 
 
 (defun rg/icons--save-memory-cache ()
+  "Save the in-memory cache."
   (when (and rg/icons-persistent-cache-file
              (file-writable-p rg/icons-persistent-cache-file))
     (rg/icons--log (format "Saving in-memory cache to: %s" rg/icons-persistent-cache-file))
@@ -453,6 +478,7 @@ that order. Returns nil if not cached."
       (insert (let (print-length) (prin1-to-string rg/icons-cache))))))
 
 (defun rg/icons--read-memory-cache ()
+  "Restore the in-memory cache."
   (when rg/icons-persistent-cache-file
     (if (file-exists-p rg/icons-persistent-cache-file)
         (with-demoted-errors
@@ -479,7 +505,7 @@ that order. Returns nil if not cached."
 ;; -----------------------------------------------------------------------------
 
 (defun rg/icons-create-image-for-directory (&optional icon-size)
-  "Returns an image of the directory icon."
+  "Return an image of the directory icon of size ICON-SIZE."
   (let* ((cache-key (rg/icons--cache-key "directory" icon-size))
          (cached-image (rg/icons--retrieve-image-from-cache cache-key)))
     (if cached-image
@@ -489,7 +515,7 @@ that order. Returns nil if not cached."
        (rg/icons--windows-create-image-for-directory icon-size cache-key)))))
 
 (defun rg/icons-create-image-for-default-file (&optional icon-size)
-  "Returns an image of the default file icon."
+  "Return an image of the default file icon of size ICON-SIZE."
   (let* ((cache-key (rg/icons--cache-key "default" icon-size))
          (cached-image (rg/icons--retrieve-image-from-cache cache-key)))
     (if cached-image
@@ -499,7 +525,7 @@ that order. Returns nil if not cached."
        (rg/icons--windows-create-image-for-default-file icon-size cache-key)))))
 
 (defun rg/icons-create-image-for-executable-file (&optional icon-size)
-  "Returns an image of an executable file."
+  "Return an image of an executable file of size ICON-SIZE."
   (let* ((cache-key (rg/icons--cache-key ".exe" icon-size))
          (cached-image (rg/icons--retrieve-image-from-cache cache-key)))
     (if cached-image
@@ -509,9 +535,8 @@ that order. Returns nil if not cached."
        (rg/icons--windows-create-image-for-executable-file icon-size cache-key)))))
 
 (defun rg/icons-create-image-for-extension (ext &optional icon-size)
-  "Returns an image of the icon associated with the specified
-file extension and for the given icon size. EXT should start with
-a dot."
+  "Return an image of the icon associated with extension EXT  of size ICON-SIZE.
+EXT should start with a dot."
   (let* ((cache-key (rg/icons--cache-key ext icon-size))
          (cached-image (rg/icons--retrieve-image-from-cache cache-key)))
     (if cached-image
@@ -521,9 +546,10 @@ a dot."
        (rg/icons--windows-create-image-for-extension ext icon-size cache-key)))))
 
 (defun rg/icons-create-image-for-file (file &optional icon-size)
-  "Returns an image of the icon associated with the given
-  FILE. FILE can be a directory or it can be non-existing. When
-  no icon is found, returns the default file icon."
+  "Return an image of the icon associated with the given FILE.
+FILE can be a directory or it can be non-existing.  When no icon
+is found, returns the default file icon.  Returned image has size
+ICON-SIZE."
   (let* ((symlink (file-symlink-p file))
          (ext (if symlink
                   (file-name-extension symlink t)
@@ -544,3 +570,5 @@ a dot."
     image))
 
 (provide 'rg-icons)
+
+;;; rg-icons.el ends here
