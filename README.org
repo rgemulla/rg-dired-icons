@@ -11,18 +11,18 @@ so that the mode is quite efficient.
 
 ** Prerequisites
 - [[http://www.angusj.com/resourcehacker/][ResourceHacker]] (to extract icons)
-- [[https://www.imagemagick.org/][ImageMagick 6]] (to convert icons)
+- [[https://www.imagemagick.org-][ImageMagick 6]] (to convert icons)
 
 ** Installation
 1. Install the package
 2. Add the ResourceHacker installation directory to the system path or set
-   ~rg/icons-resource-hacker-directory~ to that directory (with a trailing /)
+   ~rg-icons-resource-hacker-directory~ to that directory (with a trailing /)
 3. Add the ImageMagick installation directory to the system path (important:
-   before =Windows/System32=) or set ~rg/icons-imagemagick-directory~ to that
+   before =Windows/System32=) or set ~rg-icons-imagemagick-directory~ to that
    directory (with a trailing /)
 4. Add ~(require 'rg-dired-icons)~ to your Emacs configuration
 
-Now you can turn on and off icons via ~M-x rg/dired-icons-mode~. 
+Now you can turn on and off icons via ~M-x rg-dired-icons-mode~. 
 
 Here is an example configuration:
 #+BEGIN_SRC lisp
@@ -33,15 +33,15 @@ Here is an example configuration:
                        exec-path)))
     (when cygwin-path1
       (setq cygwin-path (concat (car cygwin-path1) "/"))
-      (setq rg/icons-imagemagick-directory cygwin-path)))
+      (setq rg-icons-imagemagick-directory cygwin-path)))
 
   ;; Example: ResourceHacker installed in ~/.emacs.d/ResourceHacker
-  (setq rg/icons-resource-hacker-directory
+  (setq rg-icons-resource-hacker-directory
         (expand-file-name (concat user-emacs-directory "ResourceHacker/")))
 
   ;; Now load the package and (optionally) switch icons on by default
   (require 'rg-dired-icons)
-  (add-hook 'dired-mode-hook 'rg/dired-icons-mode))
+  (add-hook 'dired-mode-hook 'rg-dired-icons-mode))
 #+END_SRC
 ** Refreshing icons
 - Icon resolutions are selected to exactly match the font size. When the font
@@ -51,8 +51,8 @@ Here is an example configuration:
 - rg-dired-icons caches all icons on disk and in memory. When file associations
   change, the cache may be out of sync and show outdated icons. When you
   installed an application that handles a file type that was previously
-  unhandled, run ~M-x rg/icons-clear-memory-cache~ and refresh. When you changed
-  the application that handles a file type, run ~M-x rg/icons-clear-cache~.
+  unhandled, run ~M-x rg-icons-clear-memory-cache~ and refresh. When you changed
+  the application that handles a file type, run ~M-x rg-icons-clear-cache~.
 ** Notes and known issues
 - Since the Windows builds of Emacs do not have ImageMagick support built in,
   this package directly calls the ImageMagick programs.
