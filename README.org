@@ -1,28 +1,29 @@
 * rg-dired-icons
-Dired minor mode that displays file and directory icons for Windows. Also
-provides utility functions for extracting, displaying, and caching icons.
+Dired minor mode that displays file and directory icons. Currently only Windows
+is supported. Also provides utility functions for extracting, displaying, and
+caching icons.
 
 [[file:screenshot.png]]
 
 Icons are determined using the filename extension. Given an extension,
-rg-dired-icons searches the Windows registry for the program associated with the
-extension, extracts the icon, and displays it. Once extracted, icons are cached
-so that the mode is quite efficient.
+rg-dired-icons determines the program associated with the extension, extracts
+the icon, and displays it. Once extracted, icons are cached so that the mode is
+quite efficient.
 
-** Prerequisites
-- [[http://www.angusj.com/resourcehacker/][ResourceHacker]] (to extract icons)
-- [[https://www.imagemagick.org-][ImageMagick 6]] (to convert icons)
+After installation, icon display can be turned on or off via ~M-x
+rg-dired-icons-mode~.
 
-** Installation
-1. Install the package
-2. Add the ResourceHacker installation directory to the system path or set
+** Installation (Windows)
+1. Install 
+  - [[http://www.angusj.com/resourcehacker/][ResourceHacker]] (to extract icons)
+  - [[https://www.imagemagick.org-][ImageMagick 6]] (to convert icons)
+2. Install the package
+3. Add the ResourceHacker installation directory to the system path or set
    ~rg-dired-icons-w32-resource-hacker-directory~ to that directory (with a trailing /)
-3. Add the ImageMagick installation directory to the system path (important:
+4. Add the ImageMagick installation directory to the system path (important:
    before =Windows/System32=) or set ~rg-dired-icons-w32-imagemagick-directory~ to that
    directory (with a trailing /)
-4. Add ~(require 'rg-dired-icons)~ to your Emacs configuration
-
-Now you can turn on and off icons via ~M-x rg-dired-icons-mode~. 
+5. Add ~(require 'rg-dired-icons)~ to your Emacs configuration
 
 Here is an example configuration:
 #+BEGIN_SRC lisp
@@ -47,14 +48,26 @@ Here is an example configuration:
 - Icon resolutions are selected to exactly match the font size. When the font
   size or text scale is changed in Emacs, icons sizes may be incorrect. Simply
   refresh the dired buffer to fix this.
-- When no suitable icon for a file can be determined, a default icon is shown.
+- When no suitable icon for a file can be determined, a default icon is shown. 
 - rg-dired-icons caches all icons on disk and in memory. When file associations
   change, the cache may be out of sync and show outdated icons. When you
   installed an application that handles a file type that was previously
   unhandled, run ~M-x rg-icons-clear-memory-cache~ and refresh. When you changed
   the application that handles a file type, run ~M-x rg-icons-clear-cache~.
-** Notes and known issues
+** Notes and known issues (Windows)
 - Since the Windows builds of Emacs do not have ImageMagick support built in,
   this package directly calls the ImageMagick programs.
 - ImageMagick v7 is (yet) unsupported.
 - Currently only tested with Cygwin's version of ImageMagick.
+** Support for other platforms
+The package is designed in an extensible way; most functionality is implemented
+in a platform-independent way (e.g., caching or the mode itself). To add support
+for additional platforms, see the commentary at the top of
+rg-dired-icons.el. PR's welcome.
+** Related packages
+- [[https://github.com/emacsmirror/dired-icon][dired-icon]]: Displays icons in dired for GTK-based systems. Apart from
+  targeting a different operating systems right now, rg-dired-icons differs in
+  that it automatically adapts to the font size used in Emacs, it caches icons
+  at different resolutions, and it not supports persisting the in-memory cache.
+- [[https://github.com/domtronn/all-the-icons.el][all-the-icons]]: Displays icons in dired via a special font instead of using
+  system icons.
