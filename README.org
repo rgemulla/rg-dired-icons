@@ -16,9 +16,9 @@ so that the mode is quite efficient.
 ** Installation
 1. Install the package
 2. Add the ResourceHacker installation directory to the system path or set
-   ~rg-icons-resource-hacker-directory~ to that directory (with a trailing /)
+   ~rg-dired-icons-w32-resource-hacker-directory~ to that directory (with a trailing /)
 3. Add the ImageMagick installation directory to the system path (important:
-   before =Windows/System32=) or set ~rg-icons-imagemagick-directory~ to that
+   before =Windows/System32=) or set ~rg-dired-icons-w32-imagemagick-directory~ to that
    directory (with a trailing /)
 4. Add ~(require 'rg-dired-icons)~ to your Emacs configuration
 
@@ -26,17 +26,17 @@ Now you can turn on and off icons via ~M-x rg-dired-icons-mode~.
 
 Here is an example configuration:
 #+BEGIN_SRC lisp
-(when (string-equal system-type "windows-nt")
+(when (eq (window-system) 'w32)
   ;; Example: use Cygwin's ImageMagick
   (let ((cygwin-path1 (remove-if-not
                        '(lambda (d) (string-match-p "cygwin\\(..\\)?/bin" d))
                        exec-path)))
     (when cygwin-path1
       (setq cygwin-path (concat (car cygwin-path1) "/"))
-      (setq rg-icons-imagemagick-directory cygwin-path)))
+      (setq rg-dired-icons-w32-imagemagick-directory cygwin-path)))
 
   ;; Example: ResourceHacker installed in ~/.emacs.d/ResourceHacker
-  (setq rg-icons-resource-hacker-directory
+  (setq rg-dired-icons-w32-resource-hacker-directory
         (expand-file-name (concat user-emacs-directory "ResourceHacker/")))
 
   ;; Now load the package and (optionally) switch icons on by default
