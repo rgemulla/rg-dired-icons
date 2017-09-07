@@ -352,16 +352,6 @@ the png image under name CACHE-KEY.png in
        (rg-dired-icons-w32--create-image-for-directory icon-size cache-key)))))
 
 
-(defun rg-dired-icons-w32-create-image-for-default-file (&optional icon-size)
-  "Return an image of the default file icon of size ICON-SIZE."
-  (let* ((cache-key (rg-dired-icons--cache-key "default" icon-size))
-         (cached-image (rg-dired-icons--retrieve-image-from-cache cache-key)))
-    (if cached-image
-        cached-image
-      (rg-dired-icons--store-image-in-cache
-       cache-key
-       (rg-dired-icons-w32--create-image-for-default-file icon-size cache-key)))))
-
 (defun rg-dired-icons-w32-create-image-for-executable-file (&optional icon-size)
   "Return an image of an executable file of size ICON-SIZE."
   (let* ((cache-key (rg-dired-icons--cache-key ".exe" icon-size))
@@ -399,6 +389,16 @@ EXT should start with a dot."
   (unless (executable-find (concat rg-dired-icons-w32-resource-hacker-directory "ResourceHacker"))
     (error "rg-dired-icons: ResourceHacker executable not found. Is rg-dired-icons-w32-resource-hacker-directory set correctly?.")))
 
+(defun rg-dired-icons-create-image-for-default-file (&optional icon-size)
+  "Return an image of the default file icon of size ICON-SIZE."
+  (let* ((cache-key (rg-dired-icons--cache-key "default" icon-size))
+         (cached-image (rg-dired-icons--retrieve-image-from-cache cache-key)))
+    (if cached-image
+        cached-image
+      (rg-dired-icons--store-image-in-cache
+       cache-key
+       (rg-dired-icons-w32--create-image-for-default-file icon-size cache-key)))))
+
 (defun rg-dired-icons-create-image-for-file (file &optional icon-size)
   "Return an image of the icon associated with the given FILE.
 FILE can be a directory or it can be non-existing.  When no icon
@@ -417,11 +417,12 @@ ICON-SIZE."
      ((and ext (not (equal ext "")))
       (setq image (rg-dired-icons-w32-create-image-for-extension ext icon-size))))
     (unless image
-      (setq image (rg-dired-icons-w32-create-image-for-default-file icon-size))
+      (setq image (rg-dired-icons-create-image-for-default-file icon-size))
       ;; store also misses with default icon to not try again (only in memory)
       (when (and ext (not (equal ext "")))
         (rg-dired-icons--store-image-in-cache (rg-dired-icons--cache-key ext icon-size) 'default)))
     image))
+
 
 
 (provide 'rg-dired-icons-w32)

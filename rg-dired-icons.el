@@ -30,8 +30,9 @@
 ;;
 ;; To add support for different operating systems / window managers to this
 ;; package, create a new file rg-dired-icons-<window-system>. You file needs to
-;; provide at least the methods rg-dired-icons-ensure-external-programs and
-;; rg-dired-icons-create-image-for-file. See rg-dired-icons-win for the
+;; provide at least the methods rg-dired-icons-ensure-external-programs,
+;; rg-dired-icons-create-image-for-file, and
+;; rg-dired-icons-create-image-for-default-file. See rg-dired-icons-win for the
 ;; definition of these methods.
 ;;
 ;;
