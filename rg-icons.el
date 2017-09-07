@@ -359,7 +359,7 @@ stores the png image under name CACHE-KEY.png in
        (concat rg-icons-imagemagick-directory "convert")
        nil nil nil
        (concat "ico:" frame) "-resize" (rg-icons--size-format-string icon-size)
-       ;;"-opaque" "none"
+       "-depth" "32" ;; required to handle transparency well in Emacs
        (concat "png:" png-file))
       (if (and (file-exists-p png-file) (> (nth 7 (file-attributes png-file)) 0))
           (progn
@@ -458,7 +458,8 @@ No action is performed when IMAGE is nil."
 (defun rg-icons-clear-file-cache ()
   "Clear the on-disk file cache."
   (interactive)
-  (delete-directory rg-icons-file-cache-directory t t)
+  (let ((delete-by-moving-to-trash nil))
+    (delete-directory rg-icons-file-cache-directory t t))
   (make-directory rg-icons-file-cache-directory t))
 
 (defun rg-icons-clear-cache ()
@@ -503,6 +504,15 @@ No action is performed when IMAGE is nil."
 ;; -----------------------------------------------------------------------------
 ;; Main entry points (OS-independent)
 ;; -----------------------------------------------------------------------------
+
+(defun rg-icons-ensure-external-programs ()
+  "Check whether all required external programs are present."
+  (unless (executable-find (concat rg-icons-imagemagick-directory "convert"))
+    (error "rg-icons: ImageMagick's convert exectutable not found. Is rg-icons-imagemagick-directory set correctly?."))
+  (unless (executable-find (concat rg-icons-imagemagick-directory "identify"))
+    (error "rg-icons: ImageMagick's identify exectutable not found. Is rg-icons-imagemagick-directory set correctly?."))
+  (unless (executable-find (concat rg-icons-resource-hacker-directory "ResourceHacker"))
+    (error "rg-icons: ResourceHacker executable not found. Is rg-icons-resource-hacker-directory set correctly?.")))
 
 (defun rg-icons-create-image-for-directory (&optional icon-size)
   "Return an image of the directory icon of size ICON-SIZE."

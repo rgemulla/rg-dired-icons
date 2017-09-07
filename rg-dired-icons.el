@@ -47,9 +47,13 @@
 	  (when (dired-move-to-filename nil)
 	    (let ((file (dired-get-filename 'verbatim t)))
 	      (unless (member file '("." ".."))
-		(let ((filename (dired-get-filename nil t)))
-                  (insert-image (rg-icons-create-image-for-file filename))
-                  (insert " ")))))
+		(let* ((filename (dired-get-filename nil t))
+                       (image (rg-icons-create-image-for-file filename)))
+                  (if image
+                      (progn
+                        (insert-image image)
+                        (insert " "))
+                    (insert "? "))))))
 	  (forward-line 1))))))
 
 (defun rg-dired-icons--reset (&optional _arg _noconfirm)
@@ -65,6 +69,7 @@
 (define-minor-mode rg-dired-icons-mode
   "Display all-the-icons icon for each files in a dired buffer."
   :lighter " rg-dired-icons-mode"
+  (rg-icons-ensure-external-programs)
   (if (and (display-graphic-p) rg-dired-icons-mode)
       (progn
         (add-hook 'dired-after-readin-hook 'rg-dired-icons--hook t t)
