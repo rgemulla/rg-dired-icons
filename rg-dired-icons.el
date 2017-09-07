@@ -28,13 +28,15 @@
 ;; Based on all-the-icons-dired.el:
 ;; https://github.com/jtbm37/all-the-icons-dired
 ;;
-;; To add support for different operating systems / window managers to this
-;; package, create a new file rg-dired-icons-<window-system>. You file needs to
-;; provide at least the methods rg-dired-icons-ensure-external-programs,
-;; rg-dired-icons-create-image-for-file, and
-;; rg-dired-icons-create-image-for-default-file. See rg-dired-icons-win for the
-;; definition of these methods.
-;;
+;; To add support for additional operating systems / window managers to this
+;; package, create a new file rg-dired-icons-<window-system>.el. The file needs
+;; to provide the methods rg-dired-icons--ensure-external-programs,
+;; rg-dired-icons--create-image-for-directory,
+;; rg-dired-icons--create-image-for-executable-file,
+;; rg-dired-icons--create-image-for-extension, and
+;; rg-dired-icons--create-image-for-default-file. See rg-dired-icons-w32 for the
+;; definition of these methods. All common functionality (such as file type
+;; detection and caching) is handled in an OS-independent way.
 ;;
 ;;; Code:
 
@@ -94,7 +96,24 @@ Returns t when message was logged, else nil.  Respects ;
 
 
 ;; -----------------------------------------------------------------------------
-;; Required packages
+;; Quoting and unquoting
+;; -----------------------------------------------------------------------------
+
+(defun rg-dired-icons--quote (string)
+  "Surrounds STRING with quotes, if not already present."
+  (if (string-match-p "^\".*\"$" string)
+      string
+    (concat "\"" string "\"")))
+
+(defun rg-dired-icons--unquote (string)
+  "Strips surrounding quotes from STRING, if present."
+  (if (string-match "^\"\\(.*\\)\"$" string)
+      (match-string 1 string)
+    string))
+
+
+;; -----------------------------------------------------------------------------
+;; Load required and OS-specific packages
 ;; -----------------------------------------------------------------------------
 
 (require 'dired)
@@ -105,7 +124,79 @@ Returns t when message was logged, else nil.  Respects ;
 ;; load system-specific functions to create imanges
 (cond
  ((eq (window-system) 'w32) (require 'rg-dired-icons-w32))
- (t (error (format "rg-dired-icons: window system %s currently not supported." (symbol-name (window-system))))))
+ (t (error (format "rg-dired-icons: window system %s currently not supported."
+                   (symbol-name (window-system))))))
+
+
+;; -----------------------------------------------------------------------------
+;; Main entry points (OS-independent)
+;; -----------------------------------------------------------------------------
+
+(defun rg-dired-icons-create-image-for-directory (&optional icon-size)
+  "Return an image of the directory icon of size ICON-SIZE."
+  (let* ((cache-key (rg-dired-icons--cache-key "directory" icon-size))
+         (cached-image (rg-dired-icons--retrieve-image-from-cache cache-key)))
+    (if cached-image
+        cached-image
+      (rg-dired-icons--store-image-in-cache
+       cache-key
+       (rg-dired-icons--create-image-for-directory icon-size cache-key)))))
+
+
+(defun rg-dired-icons-create-image-for-executable-file (&optional icon-size)
+  "Return an image of an executable file of size ICON-SIZE."
+  (let* ((cache-key (rg-dired-icons--cache-key ".exe" icon-size))
+         (cached-image (rg-dired-icons--retrieve-image-from-cache cache-key)))
+    (if cached-image
+        cached-image
+      (rg-dired-icons--store-image-in-cache
+       cache-key
+       (rg-dired-icons--create-image-for-executable-file icon-size cache-key)))))
+
+(defun rg-dired-icons-create-image-for-extension (ext &optional icon-size)
+  "Return an image of the icon associated with extension EXT  of size ICON-SIZE.
+EXT should start with a dot."
+  (let* ((cache-key (rg-dired-icons--cache-key ext icon-size))
+         (cached-image (rg-dired-icons--retrieve-image-from-cache cache-key)))
+    (if cached-image
+        cached-image
+      (rg-dired-icons--store-image-in-cache
+       cache-key
+       (rg-dired-icons--create-image-for-extension ext icon-size cache-key)))))
+
+(defun rg-dired-icons-create-image-for-default-file (&optional icon-size)
+  "Return an image of the default file icon of size ICON-SIZE."
+  (let* ((cache-key (rg-dired-icons--cache-key "default" icon-size))
+         (cached-image (rg-dired-icons--retrieve-image-from-cache cache-key)))
+    (if cached-image
+        cached-image
+      (rg-dired-icons--store-image-in-cache
+       cache-key
+       (rg-dired-icons--create-image-for-default-file icon-size cache-key)))))
+
+(defun rg-dired-icons-create-image-for-file (file &optional icon-size)
+  "Return an image of the icon associated with the given FILE.
+FILE can be a directory or it can be non-existing.  When no icon
+is found, returns the default file icon.  Returned image has size
+ICON-SIZE."
+  (let* ((symlink (file-symlink-p file))
+         (ext (if symlink
+                  (file-name-extension symlink t)
+                (file-name-extension file t)))
+         (image))
+    (cond
+     ((file-directory-p file)
+      (setq image (rg-dired-icons-create-image-for-directory icon-size)))
+     ((and ext (equal ext ".exe"))
+      (setq image (rg-dired-icons-create-image-for-executable-file icon-size)))
+     ((and ext (not (equal ext "")))
+      (setq image (rg-dired-icons-create-image-for-extension ext icon-size))))
+    (unless image
+      (setq image (rg-dired-icons-create-image-for-default-file icon-size))
+      ;; store also misses with default icon to not try again (only in memory)
+      (when (and ext (not (equal ext "")))
+        (rg-dired-icons--store-image-in-cache (rg-dired-icons--cache-key ext icon-size) 'default)))
+    image))
 
 
 ;; -----------------------------------------------------------------------------
@@ -148,7 +239,7 @@ Returns t when message was logged, else nil.  Respects ;
 (define-minor-mode rg-dired-icons-mode
   "Display all-the-icons icon for each files in a dired buffer."
   :lighter " rg-dired-icons-mode"
-  (rg-dired-icons-ensure-external-programs)
+  (rg-dired-icons--ensure-external-programs)
   (if (and (display-graphic-p) rg-dired-icons-mode)
       (progn
         (add-hook 'dired-after-readin-hook 'rg-dired-icons--hook t t)
@@ -158,6 +249,7 @@ Returns t when message was logged, else nil.  Respects ;
     (dired-revert)))
 
 (advice-add 'dired-revert :before #'rg-dired-icons--reset)
+
 
 (provide 'rg-dired-icons)
 

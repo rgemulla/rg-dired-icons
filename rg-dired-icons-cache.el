@@ -21,6 +21,10 @@
 
 ;;; Code:
 
+;; -----------------------------------------------------------------------------
+;; Caching variables
+;; -----------------------------------------------------------------------------
+
 (defcustom rg-dired-icons-file-cache-directory
   (expand-file-name (concat user-emacs-directory "rg-dired-icons/cache/"))
   "Directory where extracted files are stored and cached.
@@ -43,11 +47,16 @@ package."
   :type 'string
   :group 'rg-dired-icons)
 
-(defvar rg-dired-icons-cache nil
+(defvar rg-dired-icons--cache nil
   "In-memory cache of icons.
 Key is the caching key (typically of
 form \"<extension>-<size>\"). Value is either an image or the
   symbol 'default.")
+
+
+;; -----------------------------------------------------------------------------
+;; Caching functions
+;; -----------------------------------------------------------------------------
 
 (defun rg-dired-icons--cache-key (base-key icon-size)
   "Compute a cache key from a BASE-KEY and an ICON-SIZE."
@@ -58,7 +67,7 @@ form \"<extension>-<size>\"). Value is either an image or the
   "Retrieves an image from the in-memory or the on-disk cache, in that order.
 Returns nil if there is no entry with CACHE-KEY."
   (when cache-key
-    (let ((entry (gethash cache-key rg-dired-icons-cache)))
+    (let ((entry (gethash cache-key rg-dired-icons--cache)))
       (cond
        ((eq entry 'default) (rg-dired-icons-create-image-for-default-file))
        (entry entry)
@@ -76,13 +85,13 @@ Returns nil if there is no entry with CACHE-KEY."
 No action is performed when IMAGE is nil."
   (when image
     (rg-dired-icons--log (format "Caching image for key: %s" cache-key))
-    (puthash cache-key image rg-dired-icons-cache))
+    (puthash cache-key image rg-dired-icons--cache))
   image)
 
 (defun rg-dired-icons-clear-memory-cache ()
   "Clear the in-memory icon cache."
   (interactive)
-  (clrhash rg-dired-icons-cache))
+  (clrhash rg-dired-icons--cache))
 
 (defun rg-dired-icons-clear-file-cache ()
   "Clear the on-disk file cache."
@@ -105,7 +114,7 @@ No action is performed when IMAGE is nil."
     (rg-dired-icons--log (format "Saving in-memory cache to: %s" rg-dired-icons-persistent-cache-file))
     (with-temp-file rg-dired-icons-persistent-cache-file
       (set-buffer-file-coding-system 'binary t)
-      (insert (let (print-length) (prin1-to-string rg-dired-icons-cache))))))
+      (insert (let (print-length) (prin1-to-string rg-dired-icons--cache))))))
 
 (defun rg-dired-icons--read-memory-cache ()
   "Restore the in-memory cache."
@@ -115,17 +124,17 @@ No action is performed when IMAGE is nil."
             "rg-dired-icons: Error: Failed to restore in-memory cache from: %S"
           (with-temp-buffer
               (insert-file-contents-literally rg-dired-icons-persistent-cache-file)
-              (setq rg-dired-icons-cache (read (buffer-string))))
+              (setq rg-dired-icons--cache (read (buffer-string))))
           (rg-dired-icons--log (format "In-memory-cache restored from file: %s"
                                  rg-dired-icons-persistent-cache-file)))
       (rg-dired-icons--log
        (format "File for restoring in memory-cache not found: %s"
                rg-dired-icons-persistent-cache-file) 'error)))
-  rg-dired-icons-cache)
+  rg-dired-icons--cache)
 
 ;; restore the cache from last time
 (unless (rg-dired-icons--read-memory-cache)
-  (setq rg-dired-icons-cache (make-hash-table :test 'equal)))
+  (setq rg-dired-icons--cache (make-hash-table :test 'equal)))
 
 ;; auto-save on exit
 (add-hook 'kill-emacs-hook 'rg-dired-icons--save-memory-cache)
