@@ -18,6 +18,9 @@ rg-dired-icons-mode~.
   - [[http://www.angusj.com/resourcehacker/][ResourceHacker]] (to extract icons)
   - [[https://www.imagemagick.org-][ImageMagick 6]] (to convert icons)
 2. Install the package
+  - Currently not available on MELPA (see [[https://github.com/melpa/melpa/pull/4992][here]] for reasons why)
+  - Copy the package contents to directory =~/.emacs.d/rg-dired-icons=
+  - Then add the package to the load path via ~(add-to-list 'load-path (concat user-emacs-directory "rg-dired-icons"))~
 3. Add the ResourceHacker installation directory to the system path or set
    ~rg-dired-icons-w32-resource-hacker-directory~ to that directory (with a trailing /)
 4. Add the ImageMagick installation directory to the system path (important:
@@ -41,6 +44,7 @@ Here is an example configuration:
         (expand-file-name (concat user-emacs-directory "ResourceHacker/")))
 
   ;; Now load the package and (optionally) switch icons on by default
+  (add-to-list 'load-path (concat user-emacs-directory "rg-dired-icons"))
   (require 'rg-dired-icons)
   (add-hook 'dired-mode-hook 'rg-dired-icons-mode))
 #+END_SRC
