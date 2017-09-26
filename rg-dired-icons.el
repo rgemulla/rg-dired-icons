@@ -203,36 +203,30 @@ ICON-SIZE."
 ;; Minor mode definition
 ;; -----------------------------------------------------------------------------
 
-(defvar-local rg-dired-icons-displayed nil
-  "Flags whether icons have been added.")
-
 (defun rg-dired-icons--display ()
   "Display the icons of files in a dired buffer."
-  (when (and (not rg-dired-icons-displayed) dired-subdir-alist)
-    (setq-local rg-dired-icons-displayed t)
+  (when dired-subdir-alist
     (let ((inhibit-read-only t))
       (save-excursion
-	(goto-char (point-min))
-	(while (not (eobp))
-	  (when (dired-move-to-filename nil)
-	    (let ((file (dired-get-filename 'verbatim t)))
-	      (unless (member file '("." ".."))
-		(let* ((filename (dired-get-filename nil t))
-                       (image (rg-dired-icons-create-image-for-file filename)))
-                  (if image
-                      (progn
-                        (insert-image image)
-                        (insert " "))
-                    (insert "? "))))))
-	  (forward-line 1))))))
-
-(defun rg-dired-icons--reset (&optional _arg _noconfirm)
-  "Functions used as advice when redisplaying buffer."
-  (setq-local rg-dired-icons-displayed nil))
+        (goto-char (point-min))
+        (while (not (eobp))
+          (when (dired-move-to-filename nil)
+            ;; check whether there is an image on this line
+            (unless (or (get-text-property (- (point) 2) 'display)
+                        (equal (char-after (- (point) 2)) ??))
+              (let ((file (dired-get-filename 'verbatim t)))
+                (unless (member file '("." ".."))
+                  (let* ((filename (dired-get-filename nil t))
+                         (image (rg-dired-icons-create-image-for-file filename)))
+                    (if image
+                        (progn
+                          (insert-image image)
+                          (insert " "))
+                      (insert "? ")))))))
+            (forward-line 1))))))
 
 (defun rg-dired-icons--hook ()
-  "Hook to displays icons for a newly inserted subdirectory."
-  (setq-local rg-dired-icons-displayed nil)
+  "Hook to displays all icons that are missing."
   (rg-dired-icons--display))
 
 ;;;###autoload
@@ -247,9 +241,6 @@ ICON-SIZE."
           (rg-dired-icons--display)))
     (remove-hook 'dired-after-readin-hook 'rg-dired-icons--hook t)
     (dired-revert)))
-
-(advice-add 'dired-revert :before #'rg-dired-icons--reset)
-
 
 (provide 'rg-dired-icons)
 
