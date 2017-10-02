@@ -79,20 +79,16 @@ additionally log debug messages to the *Messages* buffer.  If
 Returns t when message was logged, else nil.  Respects ;
 `rg-dired-icons-debug'."
   ;; determine whether to log
-  (list 'when
-        (list 'and
-              'rg-dired-icons-debug
-              (list 'or
-                    (list 'not (list 'eq 'rg-dired-icons-debug ''error))
-                    (list 'eq type ''error)))
-        ;; now determine how to log and log
-        (list 'if
-              (list 'and type (list 'eq type ''error))
-              (list 'message "rg-dired-icons: Error: %s" msg)
-              (list 'let
-                    (list (list 'inhibit-message t))
-                    (list 'message "rg-dired-icons: %s" msg)))
-        t))
+  `(when (and rg-dired-icons-debug
+              (or (not (eq rg-dired-icons-debug 'error))
+                  (eq ,type 'error)))
+     ;; now determine how to log and log
+     (if (and ,type
+              (eq ,type 'error))
+         (message "rg-dired-icons: Error: %s" ,msg)
+       (let ((inhibit-message t))
+         (message "rg-dired-icons: %s" ,msg)))
+     t))
 
 
 ;; -----------------------------------------------------------------------------
