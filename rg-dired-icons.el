@@ -92,6 +92,16 @@ Returns t when message was logged, else nil.  Respects ;
 
 
 ;; -----------------------------------------------------------------------------
+;; Custom options
+;; -----------------------------------------------------------------------------
+
+(defcustom rg-dired-icons-enable-remote nil
+  "If nil, do not show icons for remote dired buffers."
+  :type 'boolean
+  :group 'rg-dired-icons)
+
+
+;; -----------------------------------------------------------------------------
 ;; Quoting and unquoting
 ;; -----------------------------------------------------------------------------
 
@@ -211,7 +221,9 @@ ICON-SIZE."
             (unless (or (get-text-property (- (point) 2) 'display)
                         (equal (char-after (- (point) 2)) ??))
               (let ((file (dired-get-filename 'verbatim t)))
-                (unless (member file '("." ".."))
+                (unless (or (member file '("." ".."))
+                            (and (not rg-dired-icons-enable-remote)
+                                 (file-remote-p default-directory)))
                   (let* ((filename (dired-get-filename nil t))
                          (image (rg-dired-icons-create-image-for-file filename)))
                     (if image
