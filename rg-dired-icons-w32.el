@@ -17,10 +17,13 @@
 ;;
 ;;
 ;;; Commentary:
-;; 
+;;
+;; Supports native Windows Emacs and Emacs run in WSL. In WSL, use Linux format
+;; for paths and filenames throughout, but make sure that
+;; rg-dired-icons-file-cache-directory and rg-dired-icons-persistent-cache-file
+;; are also accessible from Windows.
 
 ;;; Code:
-
 (require 'f)
 
 ;; -----------------------------------------------------------------------------
@@ -41,6 +44,37 @@ Needs to be an absolute path and end with /.  Leave empty to use system search
   :type 'string
   :group 'rg-dired-icons)
 
+;; -----------------------------------------------------------------------------
+;; WSL glue
+;; -----------------------------------------------------------------------------
+
+(defvar rg-dired-icons-w32-cmd-file-name
+  (if (string-match-p "cmdproxy" shell-file-name)
+      shell-file-name
+    "cmd.exe")
+  "Set to cmdproxy.exe in Windows or cmd.exe in WSL.")
+
+(defun rg-dired-icons-w32--expand-path (path)
+  "Expands variables in path using cmd.exe."
+  (string-trim-right
+   (shell-command-to-string
+    (concat "cmd.exe /C echo "
+            (replace-regexp-in-string "\\\\" "\\\\\\\\" path)))))
+
+(defun rg-dired-icons-w32--to-native-path (winpath)
+  "Converts Windows path to native path (only changes path when in WSL)."
+  (if (eq system-type 'windows-nt)
+      winpath
+    (string-trim-right
+     (shell-command-to-string (concat "wslpath \"" winpath "\"")))))
+
+(defun rg-dired-icons-w32--to-win-path (native-path)
+  "Converts native path to Windows path (only changes path when in WSL)."
+  (if (eq system-type 'windows-nt)
+      native-path
+    (string-trim-right
+     (shell-command-to-string (concat "wslpath -w \"" native-path "\"")))))
+
 
 ;; -----------------------------------------------------------------------------
 ;; Registry querying
@@ -50,9 +84,9 @@ Needs to be an absolute path and end with /.  Leave empty to use system search
   "Query the Windows registry.
 KEY-ARG and VALUE-ARG are used as arguments to \"reg query\".
 Returns nil on error."
-  (let ((result (shell-command-to-string (format "reg query %s %s" key-arg value-arg))))
+  (let ((result (shell-command-to-string (format "reg.exe query %s %s" key-arg value-arg))))
     (when (and result (not (string-match-p "\\`ERROR" result)))
-        result)))
+      (replace-regexp-in-string "" "" result))))
 
 (defun rg-dired-icons--w32-reg-entry-first-key (entry)
   "Extract the first value of type REG_SZ or REG_EXPAND_SZ from ENTRY.
@@ -92,15 +126,15 @@ Returns nil on error."
 (defun rg-dired-icons--w32-reg-get-progid-for-extension (ext)
   "Return the progid registered for extension EXT or nil when none."
   (let* ((progid (or (rg-dired-icons--w32-reg-entry-query-first-value
-                      (format "HKCR\\%s\\Userchoice" ext) "/v ProgId")
+                      (format "\"HKCR\\%s\\Userchoice\"" ext) "/v ProgId")
                      (rg-dired-icons--w32-reg-entry-query-first-value
-                      (format "HKCR\\%s" ext) "/ve")
+                      (format "\"HKCR\\%s\"" ext) "/ve")
                      (rg-dired-icons--w32-reg-entry-query-first-value
-                      (format "HKCR\\%s\\FriendlyTypeName" ext) "/ve")
+                      (format "\"HKCR\\%s\\FriendlyTypeName\"" ext) "/ve")
                      (rg-dired-icons--w32-reg-entry-query-first-value
-                      (format "HKCR\\%s\\OpenWithProgids" ext) "/ve")
+                      (format "\"HKCR\\%s\\OpenWithProgids\"" ext) "/ve")
                      (rg-dired-icons--w32-reg-entry-query-first-key
-                      (format "HKCR\\%s\\OpenWithProgids" ext) ""))))
+                      (format "\"HKCR\\%s\\OpenWithProgids\"" ext) ""))))
     (if progid
         (rg-dired-icons--log (format "Found progid for extension %s: %s" ext progid))
       (rg-dired-icons--log (format "Did not find progid for extension %s" ext) 'error))
@@ -109,14 +143,18 @@ Returns nil on error."
 
 (defun rg-dired-icons--w32-reg-get-icon-resource-for-progid (progid)
   "Return the icon resource (of format \"filename,icon-number\") registered with PROGID or nil when not present."
-  (let* ((entry (rg-dired-icons--w32-reg-query (format "HKCR\\%s\\DefaultIcon" progid) "/ve"))
+  (let* ((entry (rg-dired-icons--w32-reg-query (format "\"HKCR\\%s\\DefaultIcon\"" progid) "/ve"))
          (command (unless entry (rg-dired-icons--w32-reg-entry-first-value
                                  (rg-dired-icons--w32-reg-query
-                                  (format "HKCR\\%s\\Shell\\Open\\Command" progid)
+                                  (format "\"HKCR\\%s\\Shell\\Open\\Command\"" progid)
                                   "/ve"))))
-         (icon-resource (if entry (rg-dired-icons--w32-reg-entry-first-value entry)
-                          (when (and command (string-match "^\"\\([^\"]+\\)\"" command))
-                            (concat (match-string 1 command) ",0")))))
+         (icon-resource (cond
+                         (entry
+                          (rg-dired-icons--w32-reg-entry-first-value entry))
+                         ((and command (string-match "^\"\\([^\"]+\\)\"" command))
+                          (concat (match-string 1 command) ",0"))
+                         ((and command (string-match "^\\([^ ]+\\)" command))
+                          (concat (match-string 1 command) ",0")))))
     (if icon-resource
         (rg-dired-icons--log
          (format "Found icon resource for progid %s: %s" progid icon-resource))
@@ -133,8 +171,10 @@ Returns nil on error."
 Returns nil on error."
   (let* ((file-n (split-string icon-resource ","))
          (file (rg-dired-icons--unquote (nth 0 file-n)))
-         (file (if (and (not (file-exists-p file)) (not (string-match-p "[/|\\]" file)))
-                   (concat "%WinDir%/System32/" file)
+         (file (rg-dired-icons-w32--expand-path file))
+         (file (if (and (not (file-exists-p (rg-dired-icons-w32--to-native-path file)) )
+                        (not (string-match-p "[/|\\]" file)))
+                   (rg-dired-icons-w32--expand-path (concat "%WinDir%\\System32\\" file))
                  file))
          (n (int-to-string (abs (string-to-number (or (nth 1 file-n) "0")))))
          (ico-dir (concat rg-dired-icons-file-cache-directory (md5 (upcase file)) "/"))
@@ -146,19 +186,18 @@ Returns nil on error."
         (rg-dired-icons--log (format "Reusing extracted icons from file %s: %s" file ico-dir))
       (progn
         ;; create the directory and store information about its resource
-        (make-directory ico-dir t)
+        (make-directory ico-dir)
         (with-temp-file (concat ico-dir "CONTENTS")
           (insert file))
-        
+
         ;; try to extract icons
-        (call-process shell-file-name ;; shell needed to handle expansions such as %systemroot%
-                      nil nil nil
-                      shell-command-switch
-                      (format "%s -open %s -save %s -action extract -mask ICONGROUP,,"
-                              (rg-dired-icons--quote (concat rg-dired-icons-w32-resource-hacker-directory
-                                                       "ResourceHacker"))
-                              (rg-dired-icons--quote file)
-                              (rg-dired-icons--quote rc-file)))
+        (call-process
+         (concat rg-dired-icons-w32-resource-hacker-directory "ResourceHacker.exe")
+         nil nil nil
+         "-open" (replace-regexp-in-string "\\\\" "/" file)
+         "-save" (replace-regexp-in-string "\\\\" "/" (rg-dired-icons-w32--to-win-path rc-file))
+         "-action" "extract"
+         "-mask" "ICONGROUP,,")
         (setq called-resource-hacker t)))
 
     ;; determine the particular icon to use
@@ -288,13 +327,13 @@ stores the png image under name CACHE-KEY.png in
 
 (defun rg-dired-icons--ensure-external-programs ()
   "Check whether all required external programs are present."
-  (unless (executable-find "reg")
+  (unless (executable-find "reg.exe")
     (error "rg-dired-icons: reg executable not found. Are you on Windws?"))
   (unless (executable-find (concat rg-dired-icons-w32-imagemagick-directory "convert"))
     (error "rg-dired-icons: ImageMagick's convert exectutable not found. Is rg-dired-icons-w32-imagemagick-directory set correctly?."))
   (unless (executable-find (concat rg-dired-icons-w32-imagemagick-directory "identify"))
     (error "rg-dired-icons: ImageMagick's identify exectutable not found. Is rg-dired-icons-w32-imagemagick-directory set correctly?."))
-  (unless (executable-find (concat rg-dired-icons-w32-resource-hacker-directory "ResourceHacker"))
+  (unless (executable-find (concat rg-dired-icons-w32-resource-hacker-directory "ResourceHacker.exe"))
     (error "rg-dired-icons: ResourceHacker executable not found. Is rg-dired-icons-w32-resource-hacker-directory set correctly?.")))
 
 
@@ -302,7 +341,7 @@ stores the png image under name CACHE-KEY.png in
   "Create an image of the directory icon with the specified ICON-SIZE.
 When CACHE-KEY is non-nil, stores the png image under name
 CACHE-KEY.png in `rg-dired-icons-file-cache-directory'."
-  (let* ((icon-resource "%windir%/system32/shell32.dll,4")
+  (let* ((icon-resource "%windir%\\System32\\imageres.dll,4")
          (icon-file (rg-dired-icons--w32-extract-icon-file icon-resource))
          (image (when icon-file
                   (rg-dired-icons--w32-create-image-from-ico-file icon-file icon-size cache-key))))
@@ -313,7 +352,7 @@ CACHE-KEY.png in `rg-dired-icons-file-cache-directory'."
 Uses the specified ICON-SIZE.  When CACHE-KEY is non-nil, stores
 the png image under name CACHE-KEY.png in
 `rg-dired-icons-file-cache-directory'."
-  (let* ((icon-resource "%SystemRoot%/System32/shell32.dll,3")
+  (let* ((icon-resource "%SystemRoot%\\System32\\imageres.dll,15")
          (icon-file (rg-dired-icons--w32-extract-icon-file icon-resource))
          (image (when icon-file
                   (rg-dired-icons--w32-create-image-from-ico-file icon-file icon-size cache-key))))
@@ -338,7 +377,7 @@ CACHE-KEY.png in `rg-dired-icons-file-cache-directory'."
   "Create an image of the default file icon with the specified ICON-SIZE.
 When CACHE-KEY is non-nil, stores the png image under name
 CACHE-KEY.png in `rg-dired-icons-file-cache-directory'."
-  (let* ((icon-resource "%windir%/system32/shell32.dll,1")
+  (let* ((icon-resource "%windir%\\System32\\imageres.dll,2")
          (icon-file (rg-dired-icons--w32-extract-icon-file icon-resource))
          (image (when icon-file
                   (rg-dired-icons--w32-create-image-from-ico-file icon-file icon-size cache-key))))

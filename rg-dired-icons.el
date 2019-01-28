@@ -129,7 +129,9 @@ Returns t when message was logged, else nil.  Respects ;
 
 ;; load system-specific functions to create imanges
 (cond
- ((eq (window-system) 'w32) (require 'rg-dired-icons-w32))
+ ((or (eq window-system 'w32) 
+      (and (eq window-system 'x) (executable-find "cmd.exe"))) ;; WSL
+  (require 'rg-dired-icons-w32))
  (t (error (format "rg-dired-icons: window system %s currently not supported."
                    (symbol-name (window-system))))))
 
