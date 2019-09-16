@@ -191,13 +191,14 @@ Returns nil on error."
           (insert file))
 
         ;; try to extract icons
-        (call-process
-         (concat rg-dired-icons-w32-resource-hacker-directory "ResourceHacker.exe")
-         nil nil nil
-         "-open" (replace-regexp-in-string "\\\\" "/" file)
-         "-save" (replace-regexp-in-string "\\\\" "/" (rg-dired-icons-w32--to-win-path rc-file))
-         "-action" "extract"
-         "-mask" "ICONGROUP,,")
+        (let ((default-directory (file-truename rg-dired-icons-w32-resource-hacker-directory)))
+          (call-process
+           (concat default-directory "ResourceHacker.exe")
+           nil nil nil
+           "-open" (replace-regexp-in-string "\\\\" "/" file)
+           "-save" (replace-regexp-in-string "\\\\" "/" (rg-dired-icons-w32--to-win-path rc-file))
+           "-action" "extract"
+           "-mask" "ICONGROUP,,"))
         (setq called-resource-hacker t)))
 
     ;; determine the particular icon to use
@@ -223,6 +224,9 @@ Returns nil on error."
        ;; if Icon.ico is present, use it
        ((file-exists-p ico-file)
         (setq extracted-ico-file ico-file))
+       ;; if file with requested number exists, use it
+       ((file-exists-p (concat ico-dir n ".ico"))
+        (setq extracted-ico-file (concat ico-dir n ".ico")))
        ;; if file is an ico file, use it
        ((equal (file-name-extension file t) ".ico")
         (progn
@@ -341,7 +345,7 @@ stores the png image under name CACHE-KEY.png in
   "Create an image of the directory icon with the specified ICON-SIZE.
 When CACHE-KEY is non-nil, stores the png image under name
 CACHE-KEY.png in `rg-dired-icons-file-cache-directory'."
-  (let* ((icon-resource "%windir%\\System32\\imageres.dll,4")
+  (let* ((icon-resource "%windir%\\SystemResources\\imageres.dll.mun,4")
          (icon-file (rg-dired-icons--w32-extract-icon-file icon-resource))
          (image (when icon-file
                   (rg-dired-icons--w32-create-image-from-ico-file icon-file icon-size cache-key))))
@@ -352,7 +356,7 @@ CACHE-KEY.png in `rg-dired-icons-file-cache-directory'."
 Uses the specified ICON-SIZE.  When CACHE-KEY is non-nil, stores
 the png image under name CACHE-KEY.png in
 `rg-dired-icons-file-cache-directory'."
-  (let* ((icon-resource "%SystemRoot%\\System32\\imageres.dll,15")
+  (let* ((icon-resource "%windir%\\SystemResources\\imageres.dll.mun,15")
          (icon-file (rg-dired-icons--w32-extract-icon-file icon-resource))
          (image (when icon-file
                   (rg-dired-icons--w32-create-image-from-ico-file icon-file icon-size cache-key))))
@@ -377,7 +381,7 @@ CACHE-KEY.png in `rg-dired-icons-file-cache-directory'."
   "Create an image of the default file icon with the specified ICON-SIZE.
 When CACHE-KEY is non-nil, stores the png image under name
 CACHE-KEY.png in `rg-dired-icons-file-cache-directory'."
-  (let* ((icon-resource "%windir%\\System32\\imageres.dll,2")
+  (let* ((icon-resource "%windir%\\SystemResources\\imageres.dll.mun,2")
          (icon-file (rg-dired-icons--w32-extract-icon-file icon-resource))
          (image (when icon-file
                   (rg-dired-icons--w32-create-image-from-ico-file icon-file icon-size cache-key))))
