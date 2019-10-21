@@ -233,10 +233,16 @@ Returns nil on error."
           (copy-file file ico-file t)
           (setq extracted-ico-file ico-file)
           (rg-dired-icons--log (format "Copied icon %s: %s" file ico-dir))))
-       ;; otherwise, there is an error
        (t
-        (rg-dired-icons--log
-         (format "Could not extract icons from file %s" file) 'error)))
+        ;; else treat n as an index and see if there is an icon file with this
+        ;; index
+        (let ((icons (directory-files ico-dir nil "[0-9]+\\.ico")))
+          (if (> (length icons) (string-to-number n))
+              (setq extracted-ico-file
+                    (concat ico-dir (nth (string-to-number n) icons)))
+            ;; otherwise, there is an error
+            (rg-dired-icons--log
+             (format "Could not extract icons from file %s" file) 'error)))))
 
       (if extracted-ico-file
           (rg-dired-icons--log
