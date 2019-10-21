@@ -176,6 +176,14 @@ Returns nil on error."
                         (not (string-match-p "[/|\\]" file)))
                    (rg-dired-icons-w32--expand-path (concat "%WinDir%\\System32\\" file))
                  file))
+         (alt-file (concat
+                    (replace-regexp-in-string
+                     "[Ss][Yy][Ss][Tt][Ee][Mm][0-9][0-9]" "SystemResources"
+                     file)
+                    ".mun"))
+         (file (if (file-exists-p (rg-dired-icons-w32--to-native-path alt-file))
+                   alt-file
+                 file))
          (n (int-to-string (abs (string-to-number (or (nth 1 file-n) "0")))))
          (ico-dir (concat rg-dired-icons-file-cache-directory (md5 (upcase file)) "/"))
          (rc-file (concat ico-dir "icon.rc"))
