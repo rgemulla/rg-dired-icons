@@ -240,9 +240,14 @@ Returns nil on error."
           (if (> (length icons) (string-to-number n))
               (setq extracted-ico-file
                     (concat ico-dir (nth (string-to-number n) icons)))
-            ;; otherwise, there is an error
-            (rg-dired-icons--log
-             (format "Could not extract icons from file %s" file) 'error)))))
+            ;; otherwise, if tehre is just one icon, use it
+            (let ((icons (directory-files ico-dir nil ".+\\.ico")))
+              (if (= (length icons) 1)
+                  (setq extracted-ico-file
+                        (concat ico-dir (nth 0 icons)))
+                ;; otherwise, there is an error
+                (rg-dired-icons--log
+                 (format "Could not extract icons from file %s" file) 'error)))))))
 
       (if extracted-ico-file
           (rg-dired-icons--log
