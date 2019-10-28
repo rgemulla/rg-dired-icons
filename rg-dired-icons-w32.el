@@ -44,6 +44,7 @@ Needs to be an absolute path and end with /.  Leave empty to use system search
   :type 'string
   :group 'rg-dired-icons)
 
+
 ;; -----------------------------------------------------------------------------
 ;; WSL glue
 ;; -----------------------------------------------------------------------------
@@ -56,10 +57,14 @@ Needs to be an absolute path and end with /.  Leave empty to use system search
 
 (defun rg-dired-icons-w32--expand-path (path)
   "Expands variables in path using cmd.exe."
-  (string-trim-right
-   (shell-command-to-string
-    (concat "cmd.exe /C echo "
-            (replace-regexp-in-string "\\\\" "\\\\\\\\" path)))))
+  (let ((default-directory (if (file-directory-p "/mnt/c/")
+                               ;; make sure that cmd.exe starts in a win dir
+                               "/mnt/c"
+                             default-directory)))
+    (string-trim-right
+     (shell-command-to-string
+      (concat "cmd.exe /C echo "
+              (replace-regexp-in-string "\\\\" "\\\\\\\\" path))))))
 
 (defun rg-dired-icons-w32--to-native-path (winpath)
   "Converts Windows path to native path (only changes path when in WSL)."
