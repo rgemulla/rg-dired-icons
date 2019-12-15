@@ -343,7 +343,7 @@ stores the png image under name CACHE-KEY.png in
       (if (and (file-exists-p png-file) (> (nth 7 (file-attributes png-file)) 0))
           (progn
             (rg-dired-icons--log (format "Created png file: %s" png-file))
-            (create-image (f-read-bytes png-file) 'png t :ascent 'center :mask 'heuristic))
+            (create-image (f-read-bytes png-file) 'png t :ascent 'center :mask 'heuristic :scale 1))
         (progn
           (rg-dired-icons--log (format "Could not create png file from %s" frame) 'error)
           nil)))))
