@@ -243,7 +243,7 @@ Returns nil on error."
        ;; if file is an ico file, use it
        ((equal (file-name-extension file t) ".ico")
         (progn
-          (copy-file file ico-file t)
+          (copy-file (rg-dired-icons-w32--to-native-path file) ico-file t)
           (setq extracted-ico-file ico-file)
           (rg-dired-icons--log (format "Copied icon %s: %s" file ico-dir))))
        (t
