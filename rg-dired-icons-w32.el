@@ -77,9 +77,23 @@ Needs to be an absolute path and end with /.  Leave empty to use system search
   "Converts native path to Windows path (only changes path when in WSL)."
   (if (eq system-type 'windows-nt)
       native-path
-    (string-trim-right
-     (shell-command-to-string (concat "wslpath -w \"" native-path "\"")))))
-
+    (let ((part0 native-path)
+          part1 windows-path)
+      (while part0
+        (if (file-exists-p part0)
+            (progn
+              (setq windows-path
+                    (concat (string-trim-right
+                             (shell-command-to-string
+                              (concat "wslpath -w \"" part0 "\"")))
+                            (when part1 "\\") part1))
+              (setq part0 nil))
+          (setq part1
+                (concat
+                 (file-name-nondirectory (string-trim-right part0 "[/]+"))
+                 (when part1 "\\") part1))
+          (setq part0 (file-name-directory (string-trim-right part0 "[/]+")))))
+      windows-path)))
 
 ;; -----------------------------------------------------------------------------
 ;; Registry querying
